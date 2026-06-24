@@ -1,0 +1,500 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Saison - Hub Équipe d'Été</title>
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --bg-gradient: linear-gradient(135deg, #f8fafc 0%, #e2e8f0 100%);
+            --panel-bg: rgba(255, 255, 255, 0.9);
+            --text-main: #0f172a;
+            --text-muted: #64748b;
+            --border-color: rgba(226, 232, 240, 0.9);
+            
+            /* Couleurs de l'équipe */
+            --color-moi: #2563eb;       /* Bleu */
+            --color-ami1: #7c3aed;      /* Violet */
+            --color-ami2: #ea580c;      /* Orange */
+        }
+
+        * { box-sizing: border-box; font-family: 'Plus Jakarta Sans', sans-serif; transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1); }
+
+        body {
+            background: var(--bg-gradient);
+            color: var(--text-main);
+            margin: 0; min-height: 100vh;
+            padding: 30px 20px;
+            display: flex; flex-direction: column; align-items: center;
+        }
+
+        /* --- ÉCRANS D'ACCÈS --- */
+        #auth-screen, #profile-screen {
+            position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+            background: var(--bg-gradient); display: flex; justify-content: center; align-items: center; z-index: 9999;
+        }
+
+        .auth-card {
+            background: white; padding: 40px; border-radius: 24px;
+            box-shadow: 0 20px 40px rgba(0,0,0,0.05); text-align: center;
+            max-width: 400px; width: 90%; border: 1px solid var(--border-color);
+        }
+
+        .auth-card input {
+            width: 100%; padding: 14px; text-align: center; font-size: 20px;
+            letter-spacing: 4px; border: 2px solid #e2e8f0; border-radius: 12px; margin: 20px 0;
+        }
+
+        .btn-prime {
+            width: 100%; background: #0f172a; color: white; border: none;
+            padding: 14px; border-radius: 12px; font-weight: 600; cursor: pointer; font-size: 16px;
+        }
+
+        .profile-btns { display: flex; flex-direction: column; gap: 12px; margin-top: 20px; }
+        .p-btn { 
+            padding: 14px; border-radius: 12px; border: none; color: white; 
+            font-weight: 600; font-size: 16px; cursor: pointer; text-align: center;
+        }
+
+        /* --- APPLICATION PRINCIPALE --- */
+        #app-container { width: 100%; max-width: 1400px; display: none; }
+        #app-container.visible { display: block; }
+
+        header { text-align: center; margin-bottom: 30px; display: flex; justify-content: space-between; align-items: center; }
+        header h1 { font-size: 32px; font-weight: 700; margin: 0; background: linear-gradient(to right, #0f172a, #2563eb); -webkit-background-clip: text; -webkit-text-fill-color: transparent;}
+        
+        .user-badge { padding: 8px 16px; border-radius: 20px; color: white; font-weight: 600; font-size: 14px; }
+
+        /* --- SÉLECTEUR DE MOIS --- */
+        .month-selector {
+            display: flex; gap: 10px; margin-bottom: 20px; justify-content: center;
+        }
+        .month-btn {
+            background: white; border: 1px solid var(--border-color); padding: 10px 20px;
+            border-radius: 12px; font-weight: 600; cursor: pointer; color: var(--text-muted);
+        }
+        .month-btn.active { background: #0f172a; color: white; border-color: #0f172a; }
+
+        /* --- LE CALENDRIER --- */
+        .calendar-box {
+            background: var(--panel-bg); backdrop-filter: blur(16px); -webkit-backdrop-filter: blur(16px);
+            border: 1px solid rgba(255,255,255,0.5); padding: 25px; border-radius: 24px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.02);
+        }
+
+        .grid-7 { display: grid; grid-template-columns: repeat(7, 1fr); gap: 10px; }
+        .day-name { text-align: center; font-weight: 600; font-size: 12px; color: var(--text-muted); padding-bottom: 5px; text-transform: uppercase; }
+
+        .day {
+            background: rgba(255, 255, 255, 0.6); border: 1px solid var(--border-color);
+            border-radius: 16px; min-height: 160px; /* Jours plus grands */
+            padding: 8px; display: flex; flex-direction: column; cursor: pointer;
+        }
+        .day:hover { background: white; border-color: #cbd5e1; }
+
+        .day-number { font-weight: 700; font-size: 13px; color: var(--text-muted); margin-bottom: 6px; }
+
+        .empty-day { background: transparent !important; border: none !important; cursor: default; pointer-events: none; }
+
+        /* --- TÂCHES / RENDEZ-VOUS --- */
+        .task {
+            background: white; border: 1px solid #e2e8f0; padding: 6px 8px;
+            border-radius: 10px; font-size: 11px; margin-bottom: 4px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.01); display: flex; align-items: flex-start; gap: 6px;
+            cursor: pointer; color: var(--text-main);
+        }
+        .task:hover { transform: translateY(-1px); box-shadow: 0 4px 8px rgba(0,0,0,0.04); }
+
+        /* Carré à cocher (Checkbox satisfaisant) */
+        .task-checkbox {
+            width: 14px; height: 14px; border: 1.5px solid #cbd5e1; border-radius: 4px;
+            margin-top: 1px; flex-shrink: 0; display: flex; align-items: center; justify-content: center;
+            background: white; cursor: pointer;
+        }
+        .task-checkbox::after {
+            content: '✓'; font-size: 10px; color: white; display: none; font-weight: bold;
+        }
+
+        /* --- ÉTATS COCHÉS (Avec transparence & couleur fixe) --- */
+        .task.completed { border-color: transparent; }
+        .task.completed .task-checkbox { background: currentColor !important; border-color: transparent !important; }
+        .task.completed .task-checkbox::after { display: block; }
+        .task.completed .task-text { text-decoration: line-through; opacity: 0.7; }
+
+        /* Assignation des styles par membre */
+        .task.completed.by-Valentin { background: rgba(37, 99, 235, 0.15); color: var(--color-moi); }
+        .task.completed.by-Tom { background: rgba(124, 58, 237, 0.15); color: var(--color-ami1); }
+        .task.completed.by-Maxence { background: rgba(234, 88, 12, 0.15); color: var(--color-ami2); }
+
+        .task-text { flex-grow: 1; word-break: break-word; line-height: 1.3; }
+        .task-text b { color: #0f172a; }
+        .task.completed b { color: inherit; }
+
+        /* --- POPUPS / MODALS --- */
+        .modal-overlay {
+            position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+            background: rgba(15, 23, 42, 0.3); backdrop-filter: blur(4px);
+            display: flex; justify-content: center; align-items: center;
+            z-index: 1000; opacity: 0; pointer-events: none;
+        }
+        .modal-overlay.active { opacity: 1; pointer-events: auto; }
+
+        .modal-content {
+            background: white; padding: 30px; border-radius: 24px;
+            width: 95%; max-width: 480px; box-shadow: 0 20px 50px rgba(0,0,0,0.1);
+        }
+        
+        .form-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+        .full-width { grid-column: span 2; }
+
+        label { display: block; font-size: 11px; font-weight: 600; color: var(--text-muted); margin-bottom: 3px; margin-top: 5px; text-transform: uppercase;}
+        input, textarea { width: 100%; padding: 10px; border: 1px solid #cbd5e1; border-radius: 8px; font-size: 13px; outline: none; }
+        input:focus, textarea:focus { border-color: #0f172a; }
+
+        .btn-group { display: flex; gap: 10px; margin-top: 20px; }
+        .btn-add { background: #0f172a; color: white; border: none; flex: 1; padding: 12px; border-radius: 10px; font-weight: 600; cursor: pointer; }
+        .btn-cancel { background: #f1f5f9; color: var(--text-muted); border: none; padding: 12px; border-radius: 10px; font-weight: 600; cursor: pointer; }
+        .btn-danger { background: #ef4444; color: white; border: none; padding: 12px; border-radius: 10px; font-weight: 600; cursor: pointer; }
+        .btn-edit { background: #0284c7; color: white; border: none; padding: 12px; border-radius: 10px; font-weight: 600; cursor: pointer; }
+
+        /* Vue Détails Grand */
+        .details-list { margin: 15px 0; display: flex; flex-direction: column; gap: 8px; }
+        .details-item { font-size: 14px; color: #334155; }
+        .details-item strong { color: #0f172a; display: inline-block; width: 110px; }
+    </style>
+</head>
+<body>
+
+    <!-- 1. CODE DE SÉCURITÉ -->
+    <div id="auth-screen">
+        <div class="auth-card">
+            <h2>🔑 Code d'accès requis</h2>
+            <p style="color: var(--text-muted); font-size: 14px;">Entrez le code pour accéder au planning de l'été.</p>
+            <input type="password" id="secret-code" placeholder="••••" maxlength="4">
+            <button class="btn-prime" onclick="checkCode()">Se connecter</button>
+        </div>
+    </div>
+
+    <!-- 2. CHOIX DU PROFIL / COULEUR -->
+    <div id="profile-screen" style="display: none;">
+        <div class="auth-card">
+            <h2>👤 Qui se connecte ?</h2>
+            <p style="color: var(--text-muted); font-size: 14px;">Sélectionnez votre profil pour appliquer votre couleur.</p>
+            <div class="profile-btns">
+                <button class="p-btn" style="background: var(--color-moi);" onclick="selectProfile('Valentin')">Valentin</button>
+                <button class="p-btn" style="background: var(--color-ami1);" onclick="selectProfile('Tom')">Tom</button>
+                <button class="p-btn" style="background: var(--color-ami2);" onclick="selectProfile('Maxence')">Maxence</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- 3. APPLICATION PRINCIPALE -->
+    <div id="app-container">
+        <header>
+            <div>
+                <h1>Saison.</h1>
+                <p style="color: var(--text-muted); margin: 0; font-size: 14px;">Planning partagé de l'équipe</p>
+            </div>
+            <div id="current-user-badge" class="user-badge"></div>
+        </header>
+
+        <div class="month-selector">
+            <button class="month-btn" id="btn-6" onclick="changeMonth(6)">Juin</button>
+            <button class="month-btn" id="btn-7" onclick="changeMonth(7)">Juillet</button>
+            <button class="month-btn" id="btn-8" onclick="changeMonth(8)">Août</button>
+        </div>
+
+        <div class="calendar-box">
+            <div class="grid-7" id="calendar-grid">
+                <div class="day-name">Lun</div><div class="day-name">Mar</div><div class="day-name">Mer</div>
+                <div class="day-name">Jeu</div><div class="day-name">Ven</div><div class="day-name">Sam</div>
+                <div class="day-name">Dim</div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 4. MODAL AJOUT / MODIFICATION DE TÂCHE -->
+    <div class="modal-overlay" id="modal-add">
+        <div class="modal-content">
+            <h3 id="modal-add-title" style="margin: 0 0 15px 0;">Nouveau rendez-vous</h3>
+            <form id="job-form">
+                <div class="form-grid">
+                    <div class="full-width">
+                        <label>Nom & Prénom du client</label>
+                        <input type="text" id="client" required placeholder="Mme. Martin">
+                    </div>
+                    <div>
+                        <label>Téléphone</label>
+                        <input type="tel" id="phone" required placeholder="06...">
+                    </div>
+                    <div>
+                        <label>Heure</label>
+                        <input type="time" id="time" required>
+                    </div>
+                    <div class="full-width">
+                        <label>Adresse</label>
+                        <input type="text" id="address" required placeholder="12 rue de la Gare">
+                    </div>
+                    <div>
+                        <label>Durée estimée</label>
+                        <input type="text" id="duration" placeholder="ex: 2h">
+                    </div>
+                    <div>
+                        <label>Pers. requises</label>
+                        <input type="number" id="people" min="1" max="3" value="1">
+                    </div>
+                    <div class="full-width">
+                        <label>Description</label>
+                        <textarea id="task-desc" rows="2" placeholder="Détails du travail..."></textarea>
+                    </div>
+                </div>
+                <div class="btn-group">
+                    <button type="button" class="btn-cancel" onclick="closeModal('modal-add')">Annuler</button>
+                    <button type="submit" class="btn-add" id="btn-submit-form">Enregistrer</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- 5. MODAL VUE EN GRAND (DÉTAILS + ACTIONS) -->
+    <div class="modal-overlay" id="modal-view">
+        <div class="modal-content">
+            <h3 style="margin: 0 0 15px 0; border-bottom: 2px solid #f1f5f9; padding-bottom: 10px;">📋 Détails du Rendez-vous</h3>
+            <div class="details-list" id="details-content"></div>
+            <div class="btn-group">
+                <button type="button" class="btn-danger" id="btn-delete-job">🗑️ Supprimer</button>
+                <button type="button" class="btn-edit" id="btn-edit-job">✏️ Modifier</button>
+                <button type="button" class="btn-cancel" style="flex: 1;" onclick="closeModal('modal-view')">Fermer</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const CODE_SECRET = "6769";
+        let currentUser = "";
+        let currentMonth = 7; // Juillet par défaut
+        let selectedDay = null;
+        let editingJobId = null; // Stocke l'ID du job en cours d'édition
+
+        const monthConfig = {
+            6: { name: "Juin 2026", days: 30, offset: 0 },
+            7: { name: "Juillet 2026", days: 31, offset: 2 },
+            8: { name: "Août 2026", days: 31, offset: 5 }
+        };
+
+        let appointments = JSON.parse(localStorage.getItem('summer_jobs_v3')) || [];
+
+        function checkCode() {
+            if (document.getElementById('secret-code').value === CODE_SECRET) {
+                document.getElementById('auth-screen').style.display = 'none';
+                document.getElementById('profile-screen').style.display = 'flex';
+            } else {
+                alert("Code incorrect ! 🧐");
+                document.getElementById('secret-code').value = '';
+            }
+        }
+
+        function selectProfile(name) {
+            currentUser = name;
+            document.getElementById('profile-screen').style.display = 'none';
+            document.getElementById('app-container').classList.add('visible');
+            
+            const badge = document.getElementById('current-user-badge');
+            badge.innerText = `Connecté : ${name}`;
+            
+            if(name === "Valentin") badge.style.backgroundColor = "var(--color-moi)";
+            else if(name === "Tom") badge.style.backgroundColor = "var(--color-ami1)";
+            else if(name === "Maxence") badge.style.backgroundColor = "var(--color-ami2)";
+
+            changeMonth(7); 
+        }
+
+        function changeMonth(m) {
+            currentMonth = m;
+            document.querySelectorAll('.month-btn').forEach(b => b.classList.remove('active'));
+            document.getElementById(`btn-${m}`).classList.add('active');
+            renderCalendar();
+        }
+
+        function renderCalendar() {
+            const config = monthConfig[currentMonth];
+            const grid = document.getElementById('calendar-grid');
+            const headers = grid.querySelectorAll('.day-name');
+            grid.innerHTML = '';
+            headers.forEach(h => grid.appendChild(h));
+
+            for (let i = 0; i < config.offset; i++) {
+                let emptyDiv = document.createElement('div');
+                emptyDiv.className = 'day empty-day';
+                grid.appendChild(emptyDiv);
+            }
+
+            for (let day = 1; day <= config.days; day++) {
+                let dayDiv = document.createElement('div');
+                dayDiv.className = 'day';
+                dayDiv.innerHTML = `<span class="day-number">${day}</span>`;
+
+                dayDiv.addEventListener('click', (e) => {
+                    if (e.target.closest('.task')) return;
+                    selectedDay = day;
+                    editingJobId = null; // Mode ajout de zéro
+                    document.getElementById('modal-add-title').innerText = `Rendez-vous du ${day} ${document.getElementById(`btn-${currentMonth}`).innerText}`;
+                    document.getElementById('btn-submit-form').innerText = "Enregistrer";
+                    document.getElementById('modal-add').classList.add('active');
+                });
+
+                let dayJobs = appointments.filter(j => j.day == day && j.month == currentMonth);
+                dayJobs.sort((a,b) => a.time.localeCompare(b.time));
+
+                dayJobs.forEach(job => {
+                    let jobDiv = document.createElement('div');
+                    let userClass = job.done ? `by-${job.completedBy.replace(' ', '-')}` : '';
+                    jobDiv.className = `task ${job.done ? 'completed' : ''} ${userClass}`;
+                    
+                    jobDiv.innerHTML = `
+                        <div class="task-checkbox"></div>
+                        <div class="task-text"><b>${job.time}</b> - ${job.client}</div>
+                    `;
+
+                    jobDiv.querySelector('.task-checkbox').onclick = (e) => {
+                        e.stopPropagation();
+                        toggleJob(job.id);
+                    };
+
+                    jobDiv.onclick = (e) => {
+                        e.stopPropagation();
+                        showDetails(job);
+                    };
+
+                    dayDiv.appendChild(jobDiv);
+                });
+
+                grid.appendChild(dayDiv);
+            }
+        }
+
+        function toggleJob(id) {
+            let job = appointments.find(j => j.id === id);
+            if (!job.done) {
+                job.done = true;
+                job.completedBy = currentUser;
+            } else {
+                if(confirm("Remettre cette tâche en cours ?")) {
+                    job.done = false;
+                    job.completedBy = '';
+                }
+            }
+            localStorage.setItem('summer_jobs_v3', JSON.stringify(appointments));
+            renderCalendar();
+        }
+
+        function showDetails(job) {
+            const content = document.getElementById('details-content');
+            let monthName = document.getElementById(`btn-${job.month}`).innerText;
+            
+            content.innerHTML = `
+                <div class="details-item"><strong>Date :</strong> ${job.day} ${monthName} à ${job.time}</div>
+                <div class="details-item"><strong>Client :</strong> ${job.client}</div>
+                <div class="details-item"><strong>Téléphone :</strong> <a href="tel:${job.phone}">${job.phone}</a></div>
+                <div class="details-item"><strong>Adresse :</strong> ${job.address}</div>
+                <div class="details-item"><strong>Durée :</strong> ${job.duration || 'Non précisée'}</div>
+                <div class="details-item"><strong>Équipe :</strong> ${job.people} personne(s) requise(s)</div>
+                <div class="details-item" style="margin-top:10px; background:#f8fafc; padding:12px; border-radius:8px; border-left:4px solid #cbd5e1;">
+                    <strong>Travail à faire :</strong><br><p style="margin:5px 0 0 0; white-space: pre-wrap;">${job.desc || 'Aucune description.'}</p>
+                </div>
+                <div class="details-item" style="margin-top: 5px;">
+                    <strong>Statut :</strong> ${job.done ? `✅ Terminé par ${job.completedBy}` : '⏳ En attente'}
+                </div>
+            `;
+
+            // Configurer l'action du bouton supprimer
+            document.getElementById('btn-delete-job').onclick = () => {
+                if (confirm(`Voulez-vous vraiment supprimer définitivement le rendez-vous de ${job.client} ?`)) {
+                    appointments = appointments.filter(j => j.id !== job.id);
+                    localStorage.setItem('summer_jobs_v3', JSON.stringify(appointments));
+                    renderCalendar();
+                    closeModal('modal-view');
+                }
+            };
+
+            // Configurer l'action du bouton modifier
+            document.getElementById('btn-edit-job').onclick = () => {
+                closeModal('modal-view');
+                openEditModal(job);
+            };
+
+            document.getElementById('modal-view').classList.add('active');
+        }
+
+        function openEditModal(job) {
+            editingJobId = job.id; // On enregistre qu'on est en train de modifier ce job
+            selectedDay = job.day;  // Conserver le jour actuel (sauf s'ils recréent ailleurs)
+
+            // Remplissage des inputs
+            document.getElementById('client').value = job.client;
+            document.getElementById('phone').value = job.phone;
+            document.getElementById('address').value = job.address;
+            document.getElementById('time').value = job.time;
+            document.getElementById('duration').value = job.duration;
+            document.getElementById('people').value = job.people;
+            document.getElementById('task-desc').value = job.desc;
+
+            document.getElementById('modal-add-title').innerText = `Modifier le rendez-vous`;
+            document.getElementById('btn-submit-form').innerText = "Mettre à jour";
+            document.getElementById('modal-add').classList.add('active');
+        }
+
+        function closeModal(id) {
+            document.getElementById(id).classList.remove('active');
+            if(id === 'modal-add') {
+                document.getElementById('job-form').reset();
+                editingJobId = null;
+            }
+        }
+
+        document.getElementById('job-form').onsubmit = function(e) {
+            e.preventDefault();
+            
+            if (editingJobId) {
+                // Mode MODIFICATION
+                let job = appointments.find(j => j.id === editingJobId);
+                if (job) {
+                    job.client = document.getElementById('client').value;
+                    job.phone = document.getElementById('phone').value;
+                    job.address = document.getElementById('address').value;
+                    job.time = document.getElementById('time').value;
+                    job.duration = document.getElementById('duration').value;
+                    job.people = document.getElementById('people').value;
+                    job.desc = document.getElementById('task-desc').value;
+                }
+            } else {
+                // Mode NOUVEL AJOUT
+                const newJob = {
+                    id: Date.now(),
+                    client: document.getElementById('client').value,
+                    phone: document.getElementById('phone').value,
+                    address: document.getElementById('address').value,
+                    month: currentMonth,
+                    day: selectedDay,
+                    time: document.getElementById('time').value,
+                    duration: document.getElementById('duration').value,
+                    people: document.getElementById('people').value,
+                    desc: document.getElementById('task-desc').value,
+                    done: false,
+                    completedBy: ''
+                };
+                appointments.push(newJob);
+            }
+
+            localStorage.setItem('summer_jobs_v3', JSON.stringify(appointments));
+            renderCalendar();
+            closeModal('modal-add');
+        };
+
+        document.getElementById('secret-code').addEventListener('keypress', function(e) {
+            if (e.key === 'Enter') checkCode();
+        });
+    </script>
+</body>
+</html>
