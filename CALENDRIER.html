@@ -3,8 +3,11 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Saison - Hub Équipe d'Été</title>
+    <title>Saison - Calendrier Partagé</title>
     <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+    
+    <script src="https://cdn.jsdelivr.net/npm/gun/gun.js"></script>
+    
     <style>
         :root {
             --bg-gradient: linear-gradient(135deg, #f8fafc 0%, #e2e8f0 100%);
@@ -12,11 +15,7 @@
             --text-main: #0f172a;
             --text-muted: #64748b;
             --border-color: rgba(226, 232, 240, 0.9);
-            
-            /* Couleurs de l'équipe */
-            --color-moi: #2563eb;       /* Bleu */
-            --color-ami1: #7c3aed;      /* Violet */
-            --color-ami2: #ea580c;      /* Orange */
+            --color-success: #10b981; /* Vert pour ce qui est fait */
         }
 
         * { box-sizing: border-box; font-family: 'Plus Jakarta Sans', sans-serif; transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1); }
@@ -29,8 +28,8 @@
             display: flex; flex-direction: column; align-items: center;
         }
 
-        /* --- ÉCRANS D'ACCÈS --- */
-        #auth-screen, #profile-screen {
+        /* --- ÉCRAN D'ACCÈS --- */
+        #auth-screen {
             position: fixed; top: 0; left: 0; width: 100%; height: 100%;
             background: var(--bg-gradient); display: flex; justify-content: center; align-items: center; z-index: 9999;
         }
@@ -51,20 +50,12 @@
             padding: 14px; border-radius: 12px; font-weight: 600; cursor: pointer; font-size: 16px;
         }
 
-        .profile-btns { display: flex; flex-direction: column; gap: 12px; margin-top: 20px; }
-        .p-btn { 
-            padding: 14px; border-radius: 12px; border: none; color: white; 
-            font-weight: 600; font-size: 16px; cursor: pointer; text-align: center;
-        }
-
         /* --- APPLICATION PRINCIPALE --- */
         #app-container { width: 100%; max-width: 1400px; display: none; }
         #app-container.visible { display: block; }
 
-        header { text-align: center; margin-bottom: 30px; display: flex; justify-content: space-between; align-items: center; }
+        header { text-align: center; margin-bottom: 30px; }
         header h1 { font-size: 32px; font-weight: 700; margin: 0; background: linear-gradient(to right, #0f172a, #2563eb); -webkit-background-clip: text; -webkit-text-fill-color: transparent;}
-        
-        .user-badge { padding: 8px 16px; border-radius: 20px; color: white; font-weight: 600; font-size: 14px; }
 
         /* --- SÉLECTEUR DE MOIS --- */
         .month-selector {
@@ -88,7 +79,7 @@
 
         .day {
             background: rgba(255, 255, 255, 0.6); border: 1px solid var(--border-color);
-            border-radius: 16px; min-height: 160px; /* Jours plus grands */
+            border-radius: 16px; min-height: 160px;
             padding: 8px; display: flex; flex-direction: column; cursor: pointer;
         }
         .day:hover { background: white; border-color: #cbd5e1; }
@@ -106,7 +97,6 @@
         }
         .task:hover { transform: translateY(-1px); box-shadow: 0 4px 8px rgba(0,0,0,0.04); }
 
-        /* Carré à cocher (Checkbox satisfaisant) */
         .task-checkbox {
             width: 14px; height: 14px; border: 1.5px solid #cbd5e1; border-radius: 4px;
             margin-top: 1px; flex-shrink: 0; display: flex; align-items: center; justify-content: center;
@@ -116,16 +106,11 @@
             content: '✓'; font-size: 10px; color: white; display: none; font-weight: bold;
         }
 
-        /* --- ÉTATS COCHÉS (Avec transparence & couleur fixe) --- */
-        .task.completed { border-color: transparent; }
-        .task.completed .task-checkbox { background: currentColor !important; border-color: transparent !important; }
+        /* Style unique pour les tâches terminées */
+        .task.completed { border-color: transparent; background: rgba(16, 185, 129, 0.15); color: var(--color-success); }
+        .task.completed .task-checkbox { background: var(--color-success) !important; border-color: transparent !important; }
         .task.completed .task-checkbox::after { display: block; }
-        .task.completed .task-text { text-decoration: line-through; opacity: 0.7; }
-
-        /* Assignation des styles par membre */
-        .task.completed.by-Valentin { background: rgba(37, 99, 235, 0.15); color: var(--color-moi); }
-        .task.completed.by-Tom { background: rgba(124, 58, 237, 0.15); color: var(--color-ami1); }
-        .task.completed.by-Maxence { background: rgba(234, 88, 12, 0.15); color: var(--color-ami2); }
+        .task.completed .task-text { text-decoration: line-through; opacity: 0.8; }
 
         .task-text { flex-grow: 1; word-break: break-word; line-height: 1.3; }
         .task-text b { color: #0f172a; }
@@ -158,7 +143,6 @@
         .btn-danger { background: #ef4444; color: white; border: none; padding: 12px; border-radius: 10px; font-weight: 600; cursor: pointer; }
         .btn-edit { background: #0284c7; color: white; border: none; padding: 12px; border-radius: 10px; font-weight: 600; cursor: pointer; }
 
-        /* Vue Détails Grand */
         .details-list { margin: 15px 0; display: flex; flex-direction: column; gap: 8px; }
         .details-item { font-size: 14px; color: #334155; }
         .details-item strong { color: #0f172a; display: inline-block; width: 110px; }
@@ -166,37 +150,19 @@
 </head>
 <body>
 
-    <!-- 1. CODE DE SÉCURITÉ -->
     <div id="auth-screen">
         <div class="auth-card">
             <h2>🔑 Code d'accès requis</h2>
-            <p style="color: var(--text-muted); font-size: 14px;">Entrez le code pour accéder au planning de l'été.</p>
+            <p style="color: var(--text-muted); font-size: 14px;">Entrez le code pour accéder au calendrier synchronisé.</p>
             <input type="password" id="secret-code" placeholder="••••" maxlength="4">
             <button class="btn-prime" onclick="checkCode()">Se connecter</button>
         </div>
     </div>
 
-    <!-- 2. CHOIX DU PROFIL / COULEUR -->
-    <div id="profile-screen" style="display: none;">
-        <div class="auth-card">
-            <h2>👤 Qui se connecte ?</h2>
-            <p style="color: var(--text-muted); font-size: 14px;">Sélectionnez votre profil pour appliquer votre couleur.</p>
-            <div class="profile-btns">
-                <button class="p-btn" style="background: var(--color-moi);" onclick="selectProfile('Valentin')">Valentin</button>
-                <button class="p-btn" style="background: var(--color-ami1);" onclick="selectProfile('Tom')">Tom</button>
-                <button class="p-btn" style="background: var(--color-ami2);" onclick="selectProfile('Maxence')">Maxence</button>
-            </div>
-        </div>
-    </div>
-
-    <!-- 3. APPLICATION PRINCIPALE -->
     <div id="app-container">
         <header>
-            <div>
-                <h1>Saison.</h1>
-                <p style="color: var(--text-muted); margin: 0; font-size: 14px;">Planning partagé de l'équipe</p>
-            </div>
-            <div id="current-user-badge" class="user-badge"></div>
+            <h1>Saison.</h1>
+            <p style="color: var(--text-muted); margin: 5px 0 0 0; font-size: 14px;">Calendrier partagé en temps réel</p>
         </header>
 
         <div class="month-selector">
@@ -214,7 +180,6 @@
         </div>
     </div>
 
-    <!-- 4. MODAL AJOUT / MODIFICATION DE TÂCHE -->
     <div class="modal-overlay" id="modal-add">
         <div class="modal-content">
             <h3 id="modal-add-title" style="margin: 0 0 15px 0;">Nouveau rendez-vous</h3>
@@ -242,10 +207,10 @@
                     </div>
                     <div>
                         <label>Pers. requises</label>
-                        <input type="number" id="people" min="1" max="3" value="1">
+                        <input type="number" id="people" min="1" max="5" value="1">
                     </div>
                     <div class="full-width">
-                        <label>Description</label>
+                        <label>Description / Notes</label>
                         <textarea id="task-desc" rows="2" placeholder="Détails du travail..."></textarea>
                     </div>
                 </div>
@@ -257,7 +222,6 @@
         </div>
     </div>
 
-    <!-- 5. MODAL VUE EN GRAND (DÉTAILS + ACTIONS) -->
     <div class="modal-overlay" id="modal-view">
         <div class="modal-content">
             <h3 style="margin: 0 0 15px 0; border-bottom: 2px solid #f1f5f9; padding-bottom: 10px;">📋 Détails du Rendez-vous</h3>
@@ -272,10 +236,15 @@
 
     <script>
         const CODE_SECRET = "6769";
-        let currentUser = "";
-        let currentMonth = 7; // Juillet par défaut
+        
+        // Initialisation de GunDB avec des réseaux relais ouverts
+        const gun = Gun(['https://gun-manhattan.herokuapp.com/gun', 'https://relay.peer.ooo/gun']);
+        const dbJobs = gun.get('saison_pure_calendar_' + CODE_SECRET);
+
+        let currentMonth = 7;
         let selectedDay = null;
-        let editingJobId = null; // Stocke l'ID du job en cours d'édition
+        let editingJobId = null;
+        let appointmentsMap = {}; 
 
         const monthConfig = {
             6: { name: "Juin 2026", days: 30, offset: 0 },
@@ -283,31 +252,29 @@
             8: { name: "Août 2026", days: 31, offset: 5 }
         };
 
-        let appointments = JSON.parse(localStorage.getItem('summer_jobs_v3')) || [];
-
         function checkCode() {
             if (document.getElementById('secret-code').value === CODE_SECRET) {
                 document.getElementById('auth-screen').style.display = 'none';
-                document.getElementById('profile-screen').style.display = 'flex';
+                document.getElementById('app-container').classList.add('visible');
+                
+                // Lancer la synchro et afficher le mois par défaut
+                startSync();
+                changeMonth(7); 
             } else {
                 alert("Code incorrect ! 🧐");
                 document.getElementById('secret-code').value = '';
             }
         }
 
-        function selectProfile(name) {
-            currentUser = name;
-            document.getElementById('profile-screen').style.display = 'none';
-            document.getElementById('app-container').classList.add('visible');
-            
-            const badge = document.getElementById('current-user-badge');
-            badge.innerText = `Connecté : ${name}`;
-            
-            if(name === "Valentin") badge.style.backgroundColor = "var(--color-moi)";
-            else if(name === "Tom") badge.style.backgroundColor = "var(--color-ami1)";
-            else if(name === "Maxence") badge.style.backgroundColor = "var(--color-ami2)";
-
-            changeMonth(7); 
+        function startSync() {
+            dbJobs.map().on((data, id) => {
+                if (data === null) {
+                    delete appointmentsMap[id];
+                } else {
+                    appointmentsMap[id] = { id, ...data };
+                }
+                renderCalendar();
+            });
         }
 
         function changeMonth(m) {
@@ -330,6 +297,8 @@
                 grid.appendChild(emptyDiv);
             }
 
+            let appointments = Object.values(appointmentsMap);
+
             for (let day = 1; day <= config.days; day++) {
                 let dayDiv = document.createElement('div');
                 dayDiv.className = 'day';
@@ -338,19 +307,19 @@
                 dayDiv.addEventListener('click', (e) => {
                     if (e.target.closest('.task')) return;
                     selectedDay = day;
-                    editingJobId = null; // Mode ajout de zéro
+                    editingJobId = null;
                     document.getElementById('modal-add-title').innerText = `Rendez-vous du ${day} ${document.getElementById(`btn-${currentMonth}`).innerText}`;
                     document.getElementById('btn-submit-form').innerText = "Enregistrer";
                     document.getElementById('modal-add').classList.add('active');
                 });
 
                 let dayJobs = appointments.filter(j => j.day == day && j.month == currentMonth);
-                dayJobs.sort((a,b) => a.time.localeCompare(b.time));
+                dayJobs.sort((a,b) => String(a.time).localeCompare(String(b.time)));
 
                 dayJobs.forEach(job => {
                     let jobDiv = document.createElement('div');
-                    let userClass = job.done ? `by-${job.completedBy.replace(' ', '-')}` : '';
-                    jobDiv.className = `task ${job.done ? 'completed' : ''} ${userClass}`;
+                    let isDone = job.done === true || job.done === "true";
+                    jobDiv.className = `task ${isDone ? 'completed' : ''}`;
                     
                     jobDiv.innerHTML = `
                         <div class="task-checkbox"></div>
@@ -359,7 +328,7 @@
 
                     jobDiv.querySelector('.task-checkbox').onclick = (e) => {
                         e.stopPropagation();
-                        toggleJob(job.id);
+                        toggleJob(job);
                     };
 
                     jobDiv.onclick = (e) => {
@@ -374,24 +343,15 @@
             }
         }
 
-        function toggleJob(id) {
-            let job = appointments.find(j => j.id === id);
-            if (!job.done) {
-                job.done = true;
-                job.completedBy = currentUser;
-            } else {
-                if(confirm("Remettre cette tâche en cours ?")) {
-                    job.done = false;
-                    job.completedBy = '';
-                }
-            }
-            localStorage.setItem('summer_jobs_v3', JSON.stringify(appointments));
-            renderCalendar();
+        function toggleJob(job) {
+            let isDone = job.done === true || job.done === "true";
+            dbJobs.get(job.id).get('done').put(!isDone);
         }
 
         function showDetails(job) {
             const content = document.getElementById('details-content');
             let monthName = document.getElementById(`btn-${job.month}`).innerText;
+            let isDone = job.done === true || job.done === "true";
             
             content.innerHTML = `
                 <div class="details-item"><strong>Date :</strong> ${job.day} ${monthName} à ${job.time}</div>
@@ -401,24 +361,20 @@
                 <div class="details-item"><strong>Durée :</strong> ${job.duration || 'Non précisée'}</div>
                 <div class="details-item"><strong>Équipe :</strong> ${job.people} personne(s) requise(s)</div>
                 <div class="details-item" style="margin-top:10px; background:#f8fafc; padding:12px; border-radius:8px; border-left:4px solid #cbd5e1;">
-                    <strong>Travail à faire :</strong><br><p style="margin:5px 0 0 0; white-space: pre-wrap;">${job.desc || 'Aucune description.'}</p>
+                    <strong>Notes / Travail :</strong><br><p style="margin:5px 0 0 0; white-space: pre-wrap;">${job.description || 'Aucune description.'}</p>
                 </div>
                 <div class="details-item" style="margin-top: 5px;">
-                    <strong>Statut :</strong> ${job.done ? `✅ Terminé par ${job.completedBy}` : '⏳ En attente'}
+                    <strong>Statut :</strong> ${isDone ? '✅ Terminé' : '⏳ En attente'}
                 </div>
             `;
 
-            // Configurer l'action du bouton supprimer
             document.getElementById('btn-delete-job').onclick = () => {
-                if (confirm(`Voulez-vous vraiment supprimer définitivement le rendez-vous de ${job.client} ?`)) {
-                    appointments = appointments.filter(j => j.id !== job.id);
-                    localStorage.setItem('summer_jobs_v3', JSON.stringify(appointments));
-                    renderCalendar();
+                if (confirm(`Supprimer définitivement le rendez-vous de ${job.client} pour tout le monde ?`)) {
+                    dbJobs.get(job.id).put(null);
                     closeModal('modal-view');
                 }
             };
 
-            // Configurer l'action du bouton modifier
             document.getElementById('btn-edit-job').onclick = () => {
                 closeModal('modal-view');
                 openEditModal(job);
@@ -428,17 +384,16 @@
         }
 
         function openEditModal(job) {
-            editingJobId = job.id; // On enregistre qu'on est en train de modifier ce job
-            selectedDay = job.day;  // Conserver le jour actuel (sauf s'ils recréent ailleurs)
+            editingJobId = job.id;
+            selectedDay = job.day;
 
-            // Remplissage des inputs
             document.getElementById('client').value = job.client;
             document.getElementById('phone').value = job.phone;
             document.getElementById('address').value = job.address;
             document.getElementById('time').value = job.time;
             document.getElementById('duration').value = job.duration;
             document.getElementById('people').value = job.people;
-            document.getElementById('task-desc').value = job.desc;
+            document.getElementById('task-desc').value = job.description || '';
 
             document.getElementById('modal-add-title').innerText = `Modifier le rendez-vous`;
             document.getElementById('btn-submit-form').innerText = "Mettre à jour";
@@ -456,39 +411,26 @@
         document.getElementById('job-form').onsubmit = function(e) {
             e.preventDefault();
             
+            const payload = {
+                client: document.getElementById('client').value,
+                phone: document.getElementById('phone').value,
+                address: document.getElementById('address').value,
+                time: document.getElementById('time').value,
+                duration: document.getElementById('duration').value,
+                people: parseInt(document.getElementById('people').value) || 1,
+                description: document.getElementById('task-desc').value,
+                month: parseInt(currentMonth),
+                day: parseInt(selectedDay)
+            };
+
             if (editingJobId) {
-                // Mode MODIFICATION
-                let job = appointments.find(j => j.id === editingJobId);
-                if (job) {
-                    job.client = document.getElementById('client').value;
-                    job.phone = document.getElementById('phone').value;
-                    job.address = document.getElementById('address').value;
-                    job.time = document.getElementById('time').value;
-                    job.duration = document.getElementById('duration').value;
-                    job.people = document.getElementById('people').value;
-                    job.desc = document.getElementById('task-desc').value;
-                }
+                dbJobs.get(editingJobId).put(payload);
             } else {
-                // Mode NOUVEL AJOUT
-                const newJob = {
-                    id: Date.now(),
-                    client: document.getElementById('client').value,
-                    phone: document.getElementById('phone').value,
-                    address: document.getElementById('address').value,
-                    month: currentMonth,
-                    day: selectedDay,
-                    time: document.getElementById('time').value,
-                    duration: document.getElementById('duration').value,
-                    people: document.getElementById('people').value,
-                    desc: document.getElementById('task-desc').value,
-                    done: false,
-                    completedBy: ''
-                };
-                appointments.push(newJob);
+                const newId = 'job_' + Date.now() + '_' + Math.random().toString(36).substr(2, 5);
+                payload.done = false;
+                dbJobs.get(newId).put(payload);
             }
 
-            localStorage.setItem('summer_jobs_v3', JSON.stringify(appointments));
-            renderCalendar();
             closeModal('modal-add');
         };
 
